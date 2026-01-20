@@ -1,5 +1,8 @@
 // Configuración de la API
-const API_URL = 'http://localhost:5017/api/sorteos';
+// Configuración de la API según el entorno
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5017/api/sorteos'  // Desarrollo local
+    : 'http://10.15.0.221:5017/api/sorteos'; // ⭐ Producción (tu servidor)
 
 // Obtener número de recibo del URL
 const urlParams = new URLSearchParams(window.location.search);

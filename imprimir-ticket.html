@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imprimir Ticket - Sorteo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .ticket {
+            display: none;
+            border: 2px dashed #333;
+            padding: 30px 20px;
+            margin-top: 30px;
+            text-align: center;
+            background: white;
+        }
+
+        .ticket.show {
+            display: block;
+        }
+
+        .ticket h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .ticket-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .ticket-info p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .ticket-info .highlight {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 15px 0;
+        }
+
+        .qr-container {
+            margin: 30px 0;
+        }
+
+        .qr-container img {
+            max-width: 250px;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+        }
+
+        .url-text {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                box-shadow: none;
+                max-width: 80mm;
+            }
+            button {
+                display: none;
+            }
+            .form-group {
+                display: none;
+            }
+            h1 {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖨️ Generar Ticket de Sorteo</h1>
+
+        <form id="formTicket">
+            <div class="form-group">
+                <label>Código de Caja:</label>
+                <input type="text" id="codigoCaja" value="CAJA01" required>
+            </div>
+
+            <div class="form-group">
+                <label>Serie Factura:</label>
+                <input type="text" id="serie" value="B01E" required>
+            </div>
+
+            <div class="form-group">
+                <label>Número Fiscal:</label>
+                <input type="number" id="numFiscal" required placeholder="Ej: 99999">
+            </div>
+
+            <div class="form-group">
+                <label>Valor Compra (COP):</label>
+                <input type="number" id="valor" required placeholder="Ej: 120000" step="1000">
+            </div>
+
+            <button type="submit" id="btnGenerar">GENERAR TICKET</button>
+        </form>
+
+        <div class="ticket" id="ticket">
+            <h2>¡PARTICIPA EN EL SORTEO! 🎉</h2>
+            
+            <div class="ticket-info">
+                <p><strong>Número de Recibo:</strong></p>
+                <p class="highlight" id="numeroRecibo"></p>
+                
+                <p><strong>Valor de compra:</strong></p>
+                <p style="font-size: 20px; font-weight: bold;">$<span id="valorCompra"></span></p>
+                
+                <p style="margin-top: 20px;"><strong>Cupones generados:</strong></p>
+                <p style="font-size: 28px; color: #28a745; font-weight: bold;">
+                    🎟️ <span id="cupones"></span>
+                </p>
+            </div>
+
+            <div class="qr-container">
+                <p><strong>Escanea el código QR para registrarte:</strong></p>
+                <img id="qrImage" src="" alt="Código QR">
+                <p class="url-text" id="url"></p>
+            </div>
+
+            <button onclick="window.print()">🖨️ IMPRIMIR TICKET</button>
+            <button onclick="location.reload()" style="background: #6c757d;">🔄 GENERAR OTRO</button>
+        </div>
+    </div>
+
+    <script>
+        // ⭐ CONFIGURA AQUÍ LA URL DE TU API
+        const API_URL = 'http://10.15.1.11:5017/api/sorteos/crear-recibo';
+
+        document.getElementById('formTicket').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btnGenerar = document.getElementById('btnGenerar');
+            btnGenerar.disabled = true;
+            btnGenerar.textContent = 'Generando...';
+
+            const datos = {
+                codigoCaja: document.getElementById('codigoCaja').value,
+                serieFactura: document.getElementById('serie').value,
+                numeroFiscal: parseInt(document.getElementById('numFiscal').value),
+                valorCompra: parseFloat(document.getElementById('valor').value)
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datos)
+                });
+
+                const resultado = await response.json();
+
+                if (resultado.exito) {
+                    // Mostrar ticket
+                    document.getElementById('numeroRecibo').textContent = resultado.numeroRecibo;
+                    document.getElementById('valorCompra').textContent = new Intl.NumberFormat('es-CO').format(resultado.valorCompra);
+                    document.getElementById('cupones').textContent = resultado.cuponesCalculados;
+                    document.getElementById('qrImage').src = 'data:image/png;base64,' + resultado.qrBase64;
+                    document.getElementById('url').textContent = resultado.urlQR;
+                    
+                    document.getElementById('ticket').classList.add('show');
+                    
+                    // Scroll al ticket
+                    document.getElementById('ticket').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert('Error: ' + resultado.mensaje);
+                    btnGenerar.disabled = false;
+                    btnGenerar.textContent = 'GENERAR TICKET';
+                }
+            } catch (error) {
+                alert('Error al conectar con la API:\n' + error.message + '\n\nVerifica que la API esté corriendo en: ' + API_URL);
+                console.error('Error:', error);
+                btnGenerar.disabled = false;
+                btnGenerar.textContent = 'GENERAR TICKET';
+            }
+        });
+
+        // Auto-incrementar número fiscal para pruebas
+        document.getElementById('numFiscal').value = Math.floor(Math.random() * 90000) + 10000;
+    </script>
+</body>
+</html>
