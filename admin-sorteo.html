@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realizar Sorteo - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .navbar h1 {
+            font-size: 24px;
+        }
+        
+        .navbar-right {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .navbar a:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+        
+        .sorteo-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .sorteo-box h2 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        
+        .sorteo-box p {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        
+        .btn-sorteo {
+            padding: 20px 50px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 5px 15px rgba(40,167,69,0.3);
+        }
+        
+        .btn-sorteo:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+        
+        .btn-sorteo:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .resultado {
+            margin-top: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            display: none;
+        }
+        
+        .resultado.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .ganador-info {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .ganador-info h3 {
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+        
+        .ganador-info p {
+            font-size: 18px;
+            margin: 8px 0;
+            color: white;
+        }
+        
+        .cupon-ganador {
+            background: white;
+            color: #28a745;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+        }
+        
+        .historial {
+            margin-top: 40px;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+        }
+        
+        .historial h3 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #28a745;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>🎲 Realizar Sorteo</h1>
+        <div class="navbar-right">
+            <span id="adminName"></span>
+            <a href="admin-reportes.html">📊 Ver Reportes</a>
+            <a href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sorteo-box">
+            <h2>🎉 Sorteo de Cupones</h2>
+            <p>Presiona el botón para seleccionar un ganador aleatorio de todos los cupones disponibles</p>
+            
+            <button id="btnSorteo" class="btn-sorteo" onclick="realizarSorteo()">
+                🎲 REALIZAR SORTEO
+            </button>
+
+            <div id="resultado" class="resultado">
+                <h3 style="color: #28a745; font-size: 32px; margin-bottom: 20px;">¡GANADOR! 🎊</h3>
+                
+                <div class="cupon-ganador" id="cuponGanador"></div>
+                
+                <div class="ganador-info">
+                    <h3 id="nombreGanador"></h3>
+                    <p><strong>Documento:</strong> <span id="documentoGanador"></span></p>
+                    <p><strong>Email:</strong> <span id="emailGanador"></span></p>
+                    <p><strong>Total cupones acumulados:</strong> <span id="totalCuponesGanador"></span></p>
+                </div>
+
+                <p style="color: #666; margin-top: 20px;">
+                    <strong>Cupones participantes:</strong> <span id="cuponesParticipantes"></span>
+                </p>
+            </div>
+        </div>
+
+        <div class="historial">
+            <h3>📜 Historial de Ganadores</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cupón Ganador</th>
+                        <th>Nombre</th>
+                        <th>Documento</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaGanadores">
+                    <tr>
+                        <td colspan="4" style="text-align: center;">Cargando historial...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5017/api'
+            : 'https://api.tuempresa.com/api';
+
+        function verificarAuth() {
+            const token = localStorage.getItem('adminToken');
+            const adminData = localStorage.getItem('adminData');
+
+            if (!token || !adminData) {
+                window.location.href = 'admin-login.html';
+                return false;
+            }
+
+            const admin = JSON.parse(adminData);
+            document.getElementById('adminName').textContent = `👤 ${admin.nombre}`;
+            return true;
+        }
+
+        function cerrarSesion() {
+            if (confirm('¿Estás seguro de cerrar sesión?')) {
+                localStorage.removeItem('adminToken');
+                localStorage.removeItem('adminData');
+                window.location.href = 'admin-login.html';
+            }
+        }
+
+        async function realizarSorteo() {
+            const btnSorteo = document.getElementById('btnSorteo');
+            const resultado = document.getElementById('resultado');
+
+            if (!confirm('¿Estás seguro de realizar el sorteo? Esta acción marcará un cupón como ganador.')) {
+                return;
+            }
+
+            btnSorteo.disabled = true;
+            btnSorteo.innerHTML = '<div class="spinner"></div> Realizando sorteo...';
+            resultado.classList.remove('show');
+
+            try {
+                const response = await fetch(`${API_URL}/admin/sorteo`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.exito) {
+                    // Mostrar ganador
+                    document.getElementById('cuponGanador').textContent = data.ganador.codigoCupon;
+                    document.getElementById('nombreGanador').textContent = data.ganador.nombreCompleto;
+                    document.getElementById('documentoGanador').textContent = data.ganador.numeroDocumento;
+                    document.getElementById('emailGanador').textContent = data.ganador.email;
+                    document.getElementById('totalCuponesGanador').textContent = data.ganador.totalCupones;
+                    document.getElementById('cuponesParticipantes').textContent = data.cuponesParticipantes;
+
+                    resultado.classList.add('show');
+
+                    // Recargar historial
+                    cargarHistorial();
+                } else {
+                    alert(data.mensaje);
+                }
+
+                btnSorteo.disabled = false;
+                btnSorteo.textContent = '🎲 REALIZAR OTRO SORTEO';
+
+            } catch (error) {
+                console.error('Error al realizar sorteo:', error);
+                alert('Error al realizar el sorteo');
+                btnSorteo.disabled = false;
+                btnSorteo.textContent = '🎲 REALIZAR SORTEO';
+            }
+        }
+
+        async function cargarHistorial() {
+            try {
+                const response = await fetch(`${API_URL}/admin/cupones-usados`);
+                const data = await response.json();
+
+                const tbody = document.getElementById('tablaGanadores');
+                tbody.innerHTML = '';
+
+                if (data.totalGanadores === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay ganadores aún</td></tr>';
+                } else {
+                    data.ganadores.forEach(ganador => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong>${ganador.codigoCupon}</strong></td>
+                            <td>${ganador.nombreCompleto}</td>
+                            <td>${ganador.numeroDocumento}</td>
+                            <td>${ganador.email}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('Error al cargar historial:', error);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (verificarAuth()) {
+                cargarHistorial();
+            }
+        });
+    </script>
+</body>
+</html>
